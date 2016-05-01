@@ -4,7 +4,6 @@ from matplotlib import pyplot as plt
 from matplotlib import colors
 
 class Mandelbrot:
-    ctx = cl.create_some_context(interactive=True)
     xmin = -2.0
     xmax = 0.5
     ymin = -1.25
@@ -14,6 +13,9 @@ class Mandelbrot:
     width = 600
     height = 600
     dpi = 72
+
+    def __init__(self, interactive=True):
+        self.ctx = cl.create_some_context(interactive=interactive)
 
     def _init_viewport(self, **kwargs):
         self.xmin = kwargs.get('xmin', self.xmin)
@@ -132,5 +134,6 @@ class Mandelbrot:
     def maxiter(self):
         return min(np.sqrt(self.zoom_percent * 2) * 80, 4000)
 
-m = Mandelbrot()
-m.render()
+if __name__ == '__main__':
+    m = Mandelbrot()
+    m.render()
