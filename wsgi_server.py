@@ -1,3 +1,4 @@
+from functools import lru_cache
 from wsgiref.simple_server import make_server
 
 from mandelbrot import Mandelbrot
@@ -139,6 +140,7 @@ def get_mandelbrot(environ, start_response):
         return [''.encode('utf-8')]
 
 
+@lru_cache()
 def get_mandelbrot_details(**viewport_kwargs):
     # show the post with the given id, the id is an integer
     m = Mandelbrot(interactive=False)
