@@ -1,10 +1,12 @@
 from functools import lru_cache
+from threading import Lock
 from wsgiref.simple_server import make_server
 
 from mandelbrot import Mandelbrot
 
 import re
 
+lock = Lock()
 EXT = '.png'
 
 html = '''
@@ -143,9 +145,11 @@ def get_mandelbrot(environ, start_response):
 @lru_cache()
 def get_mandelbrot_details(**viewport_kwargs):
     # show the post with the given id, the id is an integer
-    m = Mandelbrot(interactive=False)
-    img = m.to_png(**viewport_kwargs)
-    return img
+    global lock
+    with lock:
+        m = Mandelbrot(interactive=False)
+        img = m.to_png(**viewport_kwargs)
+        return img
 
 if __name__ == "__main__":
     httpd = make_server('', 5000, get_mandelbrot)
