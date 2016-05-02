@@ -91,10 +91,6 @@ class Mandelbrot:
 
     def calculate(self, **viewport_kwargs):
         self._init_viewport(**viewport_kwargs)
-        print('x_range', self.xmax - self.xmin)
-        print('y_range', self.ymax - self.ymin)
-        print('zoom %', self.zoom_percent)
-        print('maxiter', self.maxiter)
 
         # space representing x coords
         r1 = np.linspace(self.xmin, self.xmax, self.width, dtype=np.float32)
@@ -120,12 +116,6 @@ class Mandelbrot:
         fig = plt.figure(figsize=(img_width, img_height), dpi=self.dpi)
         ax = plt.axes()
         fig.add_axes(ax)
-
-        # ticks = np.arange(0, self.width + 1, self.width / 5)
-        # x_ticks = self.xmin + (self.xmax - self.xmin) * ticks / self.width
-        # plt.xticks(ticks, x_ticks)
-        # y_ticks = self.ymin + (self.ymax - self.ymin) * ticks / self.height
-        # plt.yticks(ticks, y_ticks)
 
         norm = colors.PowerNorm(gamma)
         plot = ax.imshow(z, cmap=cmap, norm=norm, origin='lower')
@@ -154,6 +144,7 @@ class Mandelbrot:
         a.set_xticks([])
         a.set_yticks([])
         fig.savefig(buf, bbox_inches='tight', pad_inches=0, mode='png')
+        plt.close('all')
         buf.seek(0)
         return buf
 

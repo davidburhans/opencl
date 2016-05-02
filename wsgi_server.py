@@ -39,9 +39,10 @@ html = '''
         return {{x: newx_center, y: newy_center}}
     }}
 
-
-    function onmousemove(event) {{
-        image_to_fractal(event.offsetX, event.offsetY)
+    function onclick(event) {{
+        center = image_to_fractal(event.offsetX, event.offsetY)
+        zoom *= 1.25
+        window.location = "/" + center.x + "/" + center.y + "/{size}_{cmap}_" + zoom + "x.html";
     }}
 
     function onmousewheel(event) {{
@@ -57,8 +58,8 @@ html = '''
     function ready() {{
         fractal = document.getElementById('fractal')
         fractal.onmousewheel = onmousewheel
-        fractal.onmousemove = onmousemove
-        console.log('wired onmousewheel')
+        fractal.onclick = onclick
+        console.log('wired mouse handlers')
     }}
 
 
@@ -118,24 +119,22 @@ def parse_path(url_path, ext=EXT):
 
 def get_mandelbrot(environ, start_response):
     url_path = environ['PATH_INFO'].lower()
+    status = '200 OK' # HTTP Status
     if url_path.endswith(EXT):
         viewport_kwargs = parse_path(url_path)
-        status = '200 OK' # HTTP Status
         headers = [('Content-type', 'image/png')] # HTTP Headers
         img = get_mandelbrot_details(**viewport_kwargs)
         start_response(status, headers)
         return [img.getvalue()]
     elif len(url_path) <= 1 or url_path.endswith('.html'):
         viewport_kwargs = parse_path(url_path, '.html')
-        print(viewport_kwargs)
-        status = '200 OK' # HTTP Status
         headers = [('Content-type', 'text/html; charset=UTF-8')] # HTTP Headers
         start_response(status, headers)
         result = html.format(**viewport_kwargs)
         return [result.encode('utf-8')]
     else:
         status = '404 Not Found' # HTTP Status
-        headers = [('Content-type', 'text/plain')] # HTTP Headers
+        headers = [('Content-type', 'text/plain; charset=UTF-8')] # HTTP Headers
         start_response(status, headers)
         return [''.encode('utf-8')]
 
