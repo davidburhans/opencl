@@ -72,17 +72,24 @@ html = '''
 </head>
 <body>
 <h1><a href="https://en.wikipedia.org/wiki/Mandelbrot_set">The Mandelbrot Set</a></h1>
+
 <figure style="width:{width}px">
     <figcaption>
     Zoom: {zoom_factor}x
     <span style="float:right">{cmap}</span>
     </figcaption>
-    <img src="/{xcenter}/{ycenter}/{width}-{cmap}-{zoom_factor}x.png" id="fractal" width="{width}px" height="{width}px">
+    <img style="cursor:pointer" src="/{xcenter}/{ycenter}/{width}-{cmap}-{zoom_factor}x.png" id="fractal" width="{width}px" height="{width}px">
     <figcaption>
     X: {xcenter}
     <span style="float:right">Y: {ycenter}</float>
     </figcaption>
 </figure>
+<h2>Instructions</h2>
+<ul>
+    <li>Click or mousewheel-up on the image to zoom in on that point.</li>
+    <li>Mousewheel-down to zoom out.</li>
+    <li>Select a color map from the list below to change colors.</li>
+</ul>
 ''' + color_html + '''
 </body>
 </html>
