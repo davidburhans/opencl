@@ -5,45 +5,98 @@ from matplotlib import colors
 
 
 class Mandelbrot:
-    xmin = -2.0
-    xmax = 0.5
-    ymin = -1.25
-    ymax = 1.25
-    max_x_diff = xmax - xmin
-    max_y_diff = ymax - ymin
+    xmin_bound = -2.0
+    xmax_bound = 0.5
+    ymin_bound = -1.25
+    ymax_bound = 1.25
+    max_x_diff = xmax_bound - xmin_bound
+    max_y_diff = ymax_bound - ymin_bound
+    xmin = xmin_bound
+    xmax = xmax_bound
+    ymin = ymin_bound
+    ymax = ymax_bound
     width = 600
     height = 600
     dpi = 72
+    cmap = 'gnuplot2'
+    gpu_interactive = True
 
     @property
-    def zoom_percent(self):
+    def ctx(self):
+        if not getattr(self, '_ctx', None):
+            self._ctx = cl.create_some_context(interactive=self.gpu_interactive)
+        return self._ctx
+
+    @property
+    def zoom_factor(self):
         return self.max_x_diff / (self.xmax - self.xmin)
 
     @property
     def maxiter(self):
-        return min(np.sqrt(self.zoom_percent * 2) * 80, 4000)
+        zoom = self.zoom_factor
+        if zoom < 2**8:
+            return 8000
+        elif zoom < 2**16:
+            return 16000
+        elif zoom < 2**32:
+            return 32000
+        elif zoom < 2**48:
+            return 64000
+        return 128000
+
+    @property
+    def viewport(self):
+        return dict(xmin=self.xmin,
+                    xmax=self.xmax,
+                    ymin=self.ymin,
+                    ymax=self.ymax,
+                    xcenter=(self.xmin + (self.xmax - self.xmin) / 2),
+                    ycenter=(self.ymin + (self.ymax - self.ymin) / 2),
+                    zoom_factor=self.zoom_factor,
+                    width=self.width,
+                    height=self.height,
+                    dpi=self.dpi,
+                    cmap=self.cmap,)
 
     def __init__(self, interactive=True, **viewport_kwargs):
-        self.ctx = cl.create_some_context(interactive=interactive)
-        self._init_viewport(**viewport_kwargs)
+        self.gpu_interactive = interactive
+        self.init_viewport(**viewport_kwargs)
 
-    def _init_viewport(self, **kwargs):
+    def init_viewport(self, **kwargs):
         if 'xcenter' not in kwargs:
             self.xmin = kwargs.get('xmin', self.xmin)
             self.xmax = kwargs.get('xmax', self.xmax)
             self.ymin = kwargs.get('ymin', self.ymin)
             self.ymax = kwargs.get('ymax', self.ymax)
+            center_offset = self.xmin + (self.xmax - self.xmin) / 2
         else:
             xcenter = kwargs.get('xcenter')
-            ycenter = kwargs.get('ycenter')
-            zoom_factor = kwargs.get('zoom_factor', 1)
-            self.xmin = xcenter - (self.max_x_diff / zoom_factor) / 2
-            self.xmax = xcenter + (self.max_x_diff / zoom_factor) / 2
-            self.ymin = ycenter - (self.max_y_diff / zoom_factor) / 2
-            self.ymax = ycenter + (self.max_y_diff / zoom_factor) / 2
+            ycenter = kwargs.get('ycenter', 0.0)
+            zoom_factor = kwargs.get('zoom_factor', 1.0)
+            # max size / zoom multiplier = zoomed size
+            center_offset = (self.max_x_diff / zoom_factor) / 2
+            self.xmin = xcenter - center_offset
+            self.xmax = xcenter + center_offset
+            self.ymin = ycenter - center_offset
+            self.ymax = ycenter + center_offset
+
+        if self.xmin <= self.xmin_bound:
+            self.xmin = self.xmin_bound
+            self.xmax = self.xmin + 2 * center_offset
+        if self.xmax >= self.xmax_bound:
+            self.xmax = self.xmax_bound
+            self.xmin = self.xmax - 2 * center_offset
+        if self.ymin <= self.ymin_bound:
+            self.ymin = self.ymin_bound
+            self.ymax = self.ymin + 2 * center_offset
+        if self.ymax >= self.ymax_bound:
+            self.ymax = self.ymax_bound
+            self.ymin = self.ymax - 2 * center_offset
+
         self.width = kwargs.get('width', self.width)
         self.height = kwargs.get('height', self.height)
         self.dpi = kwargs.get('dpi', self.dpi)
+        return self.viewport
 
     def _gpu(self, data):
         queue = cl.CommandQueue(self.ctx)
@@ -90,7 +143,7 @@ class Mandelbrot:
         return output
 
     def calculate(self, **viewport_kwargs):
-        self._init_viewport(**viewport_kwargs)
+        self.init_viewport(**viewport_kwargs)
 
         # space representing x coords
         r1 = np.linspace(self.xmin, self.xmax, self.width, dtype=np.float32)
@@ -106,7 +159,11 @@ class Mandelbrot:
         n3 = n3.reshape((self.height, self.width))
         return (r1,r2,n3)
 
-    def build_plot(self, gamma=0.3, cmap='jet', **viewport_kwargs):
+    def build_plot(self, gamma=0.25, cmap=None, **viewport_kwargs):
+        if not cmap:
+            cmap = self.cmap
+        else:
+            self.cmap = cmap
         x, y, z = self.calculate(**viewport_kwargs)
 
         # convert pixels to inches for matplotlib
@@ -118,7 +175,10 @@ class Mandelbrot:
         fig.add_axes(ax)
 
         norm = colors.PowerNorm(gamma)
-        plot = ax.imshow(z, cmap=cmap, norm=norm, origin='lower')
+        plot = ax.imshow(z,
+            norm=norm,
+            cmap=cmap,
+            origin='lower')
         return fig
 
     def render(self, **kwargs):
