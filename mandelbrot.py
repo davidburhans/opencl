@@ -93,6 +93,7 @@ class Mandelbrot:
             self.ymax = self.ymax_bound
             self.ymin = self.ymax - 2 * center_offset
 
+        self.cmap = kwargs.get('cmap', self.cmap)
         self.width = kwargs.get('width', self.width)
         self.height = kwargs.get('height', self.height)
         self.dpi = kwargs.get('dpi', self.dpi)
@@ -146,9 +147,9 @@ class Mandelbrot:
         self.init_viewport(**viewport_kwargs)
 
         # space representing x coords
-        r1 = np.linspace(self.xmin, self.xmax, self.width, dtype=np.float64)
+        r1 = np.linspace(self.xmin, self.xmax, self.width, dtype=np.double)
         # space representing y coords
-        r2 = np.linspace(self.ymin, self.ymax, self.height, dtype=np.float64)
+        r2 = np.linspace(self.ymin, self.ymax, self.height, dtype=np.double)
         # convert y coords to complex equations
         equations = r1 + r2[:,None]*1j
         # convert to contiguous array of equations
@@ -159,11 +160,7 @@ class Mandelbrot:
         n3 = n3.reshape((self.height, self.width))
         return (r1,r2,n3)
 
-    def build_plot(self, gamma=0.25, cmap=None, **viewport_kwargs):
-        if not cmap:
-            cmap = self.cmap
-        else:
-            self.cmap = cmap
+    def build_plot(self, gamma=0.25, **viewport_kwargs):
         x, y, z = self.calculate(**viewport_kwargs)
 
         # convert pixels to inches for matplotlib
@@ -177,7 +174,7 @@ class Mandelbrot:
         norm = colors.PowerNorm(gamma)
         plot = ax.imshow(z,
             norm=norm,
-            cmap=cmap,
+            cmap=self.cmap,
             origin='lower')
         return fig
 
