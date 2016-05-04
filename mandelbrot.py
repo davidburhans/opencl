@@ -100,27 +100,27 @@ class Mandelbrot:
 
     def _gpu(self, data):
         queue = cl.CommandQueue(self.ctx)
-        output = np.empty(data.shape, dtype=np.uint16)
+        output = np.empty(data.shape, dtype=np.uint64)
         prg = cl.Program(self.ctx, """
         #pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
         __kernel void mandelbrot(
             // inputs
-            __global float2 *data,
+            __global double2 *data,
             // output
-            __global ushort *output,
+            __global ulong *output,
             // max iterations
-            ushort const maxiter,
+            ulong const maxiter,
             // minimum divergence to stop iteration
-            float const horizon)
+            double const horizon)
         {
             // get the index for our data
             int gid = get_global_id(0);
-            float real = data[gid].x;
-            float imag = data[gid].y;
+            double real = data[gid].x;
+            double imag = data[gid].y;
             // initialize output
             output[gid] = 0;
-            for(int curiter = 0; curiter < maxiter; curiter++) {
-                float real2 = real*real, imag2 = imag*imag;
+            for(ulong curiter = 0; curiter < maxiter; curiter++) {
+                double real2 = real*real, imag2 = imag*imag;
                 // calculations quickly diverging -- we have a result
                 if (real2 + imag2 > horizon){
                      output[gid] = curiter;
@@ -138,7 +138,7 @@ class Mandelbrot:
         output_opencl = cl.Buffer(self.ctx, mf.WRITE_ONLY, output.nbytes)
 
         prg.mandelbrot(queue, output.shape, None, q_opencl,
-                       output_opencl, np.uint16(self.maxiter), np.float32(2 ** 32))
+                       output_opencl, np.uint64(self.maxiter), np.double(2 ** 32))
         cl.enqueue_copy(queue, output, output_opencl).wait()
         return output
 
@@ -146,9 +146,9 @@ class Mandelbrot:
         self.init_viewport(**viewport_kwargs)
 
         # space representing x coords
-        r1 = np.linspace(self.xmin, self.xmax, self.width, dtype=np.float32)
+        r1 = np.linspace(self.xmin, self.xmax, self.width, dtype=np.float64)
         # space representing y coords
-        r2 = np.linspace(self.ymin, self.ymax, self.height, dtype=np.float32)
+        r2 = np.linspace(self.ymin, self.ymax, self.height, dtype=np.float64)
         # convert y coords to complex equations
         equations = r1 + r2[:,None]*1j
         # convert to contiguous array of equations
