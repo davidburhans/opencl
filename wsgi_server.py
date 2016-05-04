@@ -15,7 +15,7 @@ html = '''
 <head>
 <script>
     document.addEventListener("DOMContentLoaded", ready, false)
-    var size = {size};
+    var size = {width};
     var zoom = {zoom_factor};
     var cmap = "{cmap}";
     var xcenter = {xcenter};
@@ -23,29 +23,27 @@ html = '''
     var original_diff = 2.5;
 
     function image_to_fractal(x, y) {{
-        console.log('prev', xcenter, ycenter)
-        var zoomed_diff = original_diff / zoom / 2;
-        console.log('input', x, y, zoomed_diff);
+        x_offset_factor = x / size;
+        y_offset_factor = y / size;
 
-        xmin = xcenter - zoomed_diff
-        ymin = ycenter - zoomed_diff
+        var zoom_size = original_diff / zoom;
+        var zoom_center_offset = zoom_size / 2;
 
-        //x_offset = (x - (size / 2));
-        //y_offset = (y - (size / 2));
-        x_factor = x / (size / 2);
-        y_factor = y / (size / 2);
-        //console.log('offsets', x_offset, y_offset)
-        console.log('factors', x_factor, y_factor)
-        newx_center = xmin + (x_factor * zoomed_diff)
-        newy_center = -(ymin + (y_factor * zoomed_diff))
-        console.log('output', newx_center, newy_center);
-        return {{x: newx_center, y: newy_center}}
+        // start from the left
+        zoom_xmin = xcenter - zoom_center_offset;
+        // start from the top
+        zoom_ymax = ycenter + zoom_center_offset;
+
+        zoom_xcenter = zoom_xmin + zoom_size * x_offset_factor;
+        zoom_ycenter = zoom_ymax - zoom_size * y_offset_factor;
+
+        return {{x: zoom_xcenter, y: zoom_ycenter}}
     }}
 
     function onclick(event) {{
         center = image_to_fractal(event.offsetX, event.offsetY)
         zoom *= 1.25
-        window.location = "/" + center.x + "/" + center.y + "/{size}_{cmap}_" + zoom + "x.html";
+        window.location = "/" + center.x + "/" + center.y + "/{width}_{cmap}_" + zoom + "x.html";
     }}
 
     function onmousewheel(event) {{
@@ -55,7 +53,7 @@ html = '''
         }} else if (event.wheelDelta > 0) {{
             zoom = zoom * 2;
         }}
-        window.location = "/" + center.x + "/" + center.y + "/{size}_{cmap}_" + zoom + "x.html";
+        window.location = "/" + center.x + "/" + center.y + "/{width}_{cmap}_" + zoom + "x.html";
     }}
 
     function ready() {{
@@ -69,7 +67,7 @@ html = '''
 </script>
 </head>
 <body>
-<img src="/{xcenter}/{ycenter}/{size}_{cmap}_{zoom_factor}x.png" id="fractal" width="{size}px" height="{size}px">
+<img src="/{xcenter}/{ycenter}/{width}_{cmap}_{zoom_factor}x.png" id="fractal" width="{width}px" height="{width}px">
 </body>
 </html>
 '''
@@ -81,7 +79,9 @@ def parse_filename(filename, ext=EXT):
     fileparts = filename.split('_')
     results = dict(zoom_factor=1, cmap='jet')
     try:
-        results['size'] = int(fileparts[0])
+        size = int(fileparts[0])
+        results['width'] = size
+        results['height'] = size
         try:
             results['zoom_factor'] = parse_zoom(fileparts[1])
         except ValueError:
@@ -114,7 +114,7 @@ def parse_path(url_path, ext=EXT):
         filename = parts.pop()
         kwargs = parse_filename(filename, ext)
     except (IndexError, AssertionError):
-        kwargs = dict(cmap='jet', size=600, zoom_factor=1.0)
+        kwargs = dict(cmap='jet', width=600, height=600, zoom_factor=1.0)
     kwargs['xcenter'] = xcenter
     kwargs['ycenter'] = ycenter
     return kwargs
@@ -133,7 +133,8 @@ def get_mandelbrot(environ, start_response):
         viewport_kwargs = parse_path(url_path, '.html')
         headers = [('Content-type', 'text/html; charset=UTF-8')] # HTTP Headers
         start_response(status, headers)
-        result = html.format(**viewport_kwargs)
+        m = Mandelbrot(interactive=False, **viewport_kwargs)
+        result = html.format(**m.viewport)
         return [result.encode('utf-8')]
     else:
         status = '404 Not Found' # HTTP Status
