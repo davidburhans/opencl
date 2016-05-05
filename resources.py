@@ -63,10 +63,23 @@ html = '''
     }}
 
     function ready() {{
-        fractal = document.getElementById('fractal')
-        fractal.onmousewheel = onmousewheel
-        fractal.onclick = onclick
+        fractal = document.getElementById('fractal');
+        fractal.onmousewheel = onmousewheel;
+        fractal.onclick = onclick;
+        zoomin = document.getElementById('zoomin');
+        zoomin.onclick = function() {{
+            redir_zoom(1.5);
+        }}
+        zoomout = document.getElementById('zoomout');
+        zoomout.onclick = function() {{
+            redir_zoom(0.5);
+        }}
         console.log('wired mouse handlers')
+    }}
+
+    function redir_zoom(change) {{
+        new_zoom = {zoom_factor} * change;
+        window.location = '/{xcenter}/{ycenter}/{width}-{cmap}-' + new_zoom + 'x.html';
     }}
 
 </script>
@@ -76,7 +89,7 @@ html = '''
 <h1><a href="https://en.wikipedia.org/wiki/Mandelbrot_set">The Mandelbrot Set</a></h1>
 <figure style="width:{width}px">
     <figcaption>
-    Zoom: {zoom_factor}x
+    Zoom: <button style='font-size:larger' id='zoomout'> - </button> {zoom_factor}x <button style='font-size:larger' id='zoomin'> + </button>
     <span style="float:right">{cmap}</span>
     </figcaption>
     <img style="cursor:pointer" src="/{xcenter}/{ycenter}/{width}-{cmap}-{zoom_factor}x.png" id="fractal" width="{width}px" height="{width}px">
