@@ -31,6 +31,8 @@ def parse_filename(filename, ext=EXT):
             results['cmap'] = fileparts[2]
     except IndexError:
         pass
+    # minimum zoom factor
+    results['zoom_factor'] = max(0.1, results['zoom_factor'])
     return results
 
 
