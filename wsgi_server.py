@@ -50,6 +50,14 @@ def parse_path(url_path, ext=EXT):
         xcenter = -0.75
         ycenter = 0
     try:
+        assert xcenter > Mandelbrot.xmin_bound
+        assert xcenter < Mandelbrot.xmax_bound
+        assert ycenter > Mandelbrot.ymin_bound
+        assert ycenter < Mandelbrot.ymax_bound
+    except AssertionError:
+        xcenter = -0.75
+        ycenter = 0
+    try:
         filename = parts.pop()
         kwargs = parse_filename(filename, ext)
     except (IndexError, AssertionError):
